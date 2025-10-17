@@ -1,0 +1,56 @@
+# keep data folder contents out of git
+tool/data/*
+
+# paper / docx files
+/論文筆記deviation put call_prediction.docx
+/paper_1_Deviations from Put-Call Parity and Stock Return Predictability.pdf
+/What Does the Individual Option Volatility Smirk Tell Us About Future Equity Returns.docx
+/What Does the Individual Option Volatility Smirk Tell Us About Future Equity Returns.pdf
+/What Does the Individual Option Volatility tell us.pdf
+
+/tool/code/signals/*
+
+# Python caches and artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+
+# virtualenvs and env files
+venv/
+.venv/
+env/
+.env
+.env.*
+
+# build / distribution
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# IDEs / editors
+.vscode/
+.idea/
+*.sublime-*
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# logs / test output / coverage
+*.log
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Node (if present)
+node_modules/
+npm-debug.log
+yarn-debug.log
+
+# other temp files
+*.bak
+*.tmp

@@ -8,9 +8,9 @@ tool/data/*
 /What Does the Individual Option Volatility Smirk Tell Us About Future Equity Returns.pdf
 /What Does the Individual Option Volatility tell us.pdf
 
-/tool/code/signals/*
+# /tool/code/signals/*
 
-/tool/code/smile/outputDir/*
+# /tool/code/smile/outputDir/*
 # Python caches and artifacts
 __pycache__/
 *.py[cod]

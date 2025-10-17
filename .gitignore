@@ -10,6 +10,7 @@ tool/data/*
 
 /tool/code/signals/*
 
+/tool/code/smile/outputDir/*
 # Python caches and artifacts
 __pycache__/
 *.py[cod]

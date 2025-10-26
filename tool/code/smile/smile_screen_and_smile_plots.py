@@ -281,20 +281,39 @@ def prep_smile_points(df_src: pd.DataFrame) -> pd.DataFrame:
     """Group by type/strike and average IV for plotting. Assumes columns type/strike/iv_pct present."""
     if df_src.empty:
         return df_src
-    # volume-weighted when available
-    has_vol = "volume" in df_src.columns
-    if has_vol:
-        df_src = df_src.copy()
-        df_src["_w"] = df_src["volume"].fillna(0).clip(lower=1)
-        piv = (df_src.groupby(["type","strike"], as_index=False)
-                      .apply(lambda g: pd.Series({
-                          "iv_pct": np.average(g["iv_pct"], weights=g["_w"]) 
-                      }))
-                      .sort_values(["type","strike"]))
+
+    df = df_src.copy()
+    # Normalize type values and ensure strike is numeric
+    if "type" in df.columns:
+        df["type"] = df["type"].astype(str).str.strip().str.lower()
     else:
-        piv = (df_src.groupby(["type","strike"], as_index=False)
-                      .agg(iv_pct=("iv_pct","mean"))
-                      .sort_values(["type","strike"]))
+        df["type"] = ""
+    # coerce strike to float and drop non-numeric
+    df["strike"] = pd.to_numeric(df["strike"], errors="coerce")
+    df = df.dropna(subset=["strike", "iv_pct"]).copy()
+
+    # volume-weighted when available
+    has_vol = "volume" in df.columns
+    if has_vol:
+        df["_w"] = df["volume"].fillna(0).clip(lower=1)
+        piv = (
+            df.groupby(["type", "strike"], as_index=False)
+              .apply(lambda g: pd.Series({"iv_pct": np.average(g["iv_pct"], weights=g["_w"]) }))
+              .reset_index()
+              .sort_values(["type", "strike"])
+        )
+        # after reset_index, apply yields columns ['type','strike',0?,'iv_pct'] depending on pandas; normalize
+        if "iv_pct" not in piv.columns and piv.shape[1] >= 3:
+            piv.columns = ["type","strike","iv_pct"]
+    else:
+        piv = (
+            df.groupby(["type", "strike"], as_index=False)
+              .agg(iv_pct=("iv_pct", "mean"))
+              .sort_values(["type", "strike"])
+        )
+
+    # final normalization
+    piv["type"] = piv["type"].astype(str).str.strip().str.lower()
     return piv
 
 def plot_smile(df_all: pd.DataFrame, tkr: str, expiry: date, outdir: Path):
@@ -330,19 +349,35 @@ def plot_smile(df_all: pd.DataFrame, tkr: str, expiry: date, outdir: Path):
     if np.isfinite(spot):
         spot_label = f"SPOT {spot:.2f}"
 
+    # Normalize pivot 'type' and ensure strike numeric (defensive)
+    piv["type"] = piv["type"].astype(str).str.strip().str.lower()
+    piv["strike"] = pd.to_numeric(piv["strike"], errors="coerce")
+
     # Minimum points per side
     pts_call = piv[piv["type"]=="call"]["strike"].nunique()
     pts_put  = piv[piv["type"]=="put"]["strike"].nunique()
     if pts_call < MIN_POINTS_PER_SIDE and pts_put < MIN_POINTS_PER_SIDE:
         return None
 
+    # Debug summary to help identify swapped sides / bad data
+    try:
+        for st in ["put","call"]:
+            s = piv[piv["type"]==st]
+            if not s.empty:
+                print(f"{tkr} {expiry} {st}: count={s['strike'].nunique()}, min={s['strike'].min():.2f}, max={s['strike'].max():.2f}")
+    except Exception:
+        pass
+
     plt.figure(figsize=(9,6))
     if spot_label is not None:
         plt.axvline(spot, linestyle='--', alpha=0.6, label=spot_label)
-    for side_type in ["call","put"]:
+
+    # Explicit plotting order and colors: put (left) then call (right)
+    colors = {"put": "C0", "call": "C1"}
+    for side_type in ["put","call"]:
         side = piv[piv["type"]==side_type].sort_values("strike")
         if side["strike"].nunique() >= max(3, MIN_POINTS_PER_SIDE//2):
-            plt.plot(side["strike"], side["iv_pct"], label=side_type.upper())
+            plt.plot(side["strike"], side["iv_pct"], label=side_type.upper(), color=colors.get(side_type))
 
     plt.title(f"{tkr} IV Smile ({expiry})")
     plt.xlabel("Strike (vertical dashed = spot)")
@@ -453,7 +488,7 @@ def run(csv_path: Path, output_dir: Path):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--csv", type=str, default="/mnt/data/iv_earnings_candidates_themes.csv",
+    ap.add_argument("--csv", type=str, default="/iv_earnings_candidates_themes.csv",
                     help="Path to iv_earnings_candidates_themes.csv")
     ap.add_argument("--outdir", type=str, default=str(OUTPUT_DIR),
                     help="Output root directory")

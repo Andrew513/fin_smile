@@ -321,7 +321,7 @@ def main():
     ap.add_argument("--target-dte", type=int, default=30, help="Target DTE for expiry selection (default 30).")
     ap.add_argument("--interval", type=int, default=3600, help="Seconds between rounds (default 3600).")
     ap.add_argument("--history", type=int, default=6, help="Overlay last N snapshots per symbol (default 6).")
-    ap.add_argument("--out", default="iv_smiles_dual", help="Output root directory.")
+    ap.add_argument("--out", default="tool/code/simple_smile_hourly/iv_smiles_dual", help="Output root directory.")
     ap.add_argument("--once", action="store_true", help="Run one round and exit.")
     ap.add_argument("--no-market-hours-guard", action="store_true", help="Run regardless of market hours.")
     args = ap.parse_args()
